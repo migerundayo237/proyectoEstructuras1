@@ -91,12 +91,19 @@ public class Aerolinea {
 		}
 
 		Aeropuerto aeropuerto = new Aeropuerto(nombre, codigo, pais, ciudad, esInternacional);
-
 		if (aeropuertos != null) {
-			for (Aeropuerto a : aeropuertos) {
-				if (a.getCodigo().equalsIgnoreCase(codigo)) {
-					throw new malDigitadoNulo("El aeropuerto ya existe.");
+			boolean duplicado = false;
+			int i = 0;
+			while(i < aeropuertos.length && !duplicado) {
+				Aeropuerto a = aeropuertos[i];
+				if(a.getCodigo().equals(codigo)) {
+					duplicado = true;
 				}
+				i++;
+			}
+			
+			if(duplicado) {
+				throw new malDigitadoNulo("El aeropuerto ya existe.");
 			}
 			aeropuertos = Arrays.copyOf(aeropuertos, aeropuertos.length + 1);
 		} else {
@@ -159,7 +166,7 @@ public class Aerolinea {
 		f.addAvion(avion);
 	}
 	
-	public void eliminarAvion(String codigo) throws avionNoEncontrado, arregloVacio {
+	public void eliminarAvion(String codigo) throws avionNoEncontrado, arregloVacio, vueloVigente {
 		if(aviones == null || aviones.length == 0) {
 			throw new arregloVacio("aviones");
 		}
@@ -167,6 +174,10 @@ public class Aerolinea {
 		int indexAEliminar = devolverIndexAvion(codigo);
 		if(indexAEliminar == -1) {
 			throw new avionNoEncontrado(codigo);
+		}
+		
+		if(!aviones[indexAEliminar].isDisponibilidad()) {
+			throw new vueloVigente("No puede eliminarse un avión de un vuelo vigente");
 		}
 		
 		Avion[] newAviones = new Avion[aviones.length - 1];
@@ -218,6 +229,10 @@ public class Aerolinea {
 	    
 	    Reservacion reservacion = new Reservacion(clientes, vuelo, precio);
 	    vuelo.asignarReserva(reservacion);
+	    for (Cliente c : clientes) {
+	    	c.addReservacionACliente(reservacion);
+	    	f.updateCliente(c.getTipoDocumento(), c.getNumDocumento(), c);
+	    }
 	    
 	    if (reservaciones != null) reservaciones = Arrays.copyOf(reservaciones, reservaciones.length + 1);
 	    else reservaciones = new Reservacion[1];
@@ -331,7 +346,31 @@ public class Aerolinea {
 	        throw new malDigitadoNulo("Ningún dato del empleado puede estar vacío.");
 	    }
 	    Empleado empleado = new Empleado(nombreP, tipoDocumento, numDocumento, nacionalidad, sexo, cargo);
-	
+	    
+	    boolean duplicado = false;
+	    int i = 0;
+	    while (!duplicado && empleados != null && i < empleados.length) {
+	        Empleado e = empleados[i];
+	        if (e.getTipoDocumento().equals(tipoDocumento) &&
+	            e.getNumDocumento().equals(numDocumento)) {
+	        	duplicado = true;
+	        }
+	        i++;
+	    }
+
+	    int j = 0;
+	    while (!duplicado && clientes != null && j < clientes.length) {
+	        Cliente c = clientes[j];
+	        if (c.getTipoDocumento().equals(tipoDocumento) &&
+	            c.getNumDocumento().equals(numDocumento)) {
+	        	duplicado = true;
+	        }
+	        j++;
+	    }
+
+	    if (duplicado) {
+	        throw new malDigitadoNulo("Ya se ha registrado una persona con este tipo y número de documento");
+	    }
 	    
 	    if (empleados != null) {
 	        empleados = Arrays.copyOf(empleados, empleados.length + 1);
@@ -363,6 +402,31 @@ public class Aerolinea {
 	    Cliente cliente = new Cliente(nombreP, tipoDocumento, numDocumento, nacionalidad,
                 sexo, esVIP, millasAcumuladas);
 	   
+	    boolean duplicado = false;
+	    int i = 0;
+	    while (!duplicado && empleados != null && i < empleados.length) {
+	        Empleado e = empleados[i];
+	        if (e.getTipoDocumento().equals(tipoDocumento) &&
+	            e.getNumDocumento().equals(numDocumento)) {
+	        	duplicado = true;
+	        }
+	        i++;
+	    }
+
+	    int j = 0;
+	    while (!duplicado && clientes != null && j < clientes.length) {
+	        Cliente c = clientes[j];
+	        if (c.getTipoDocumento().equals(tipoDocumento) &&
+	            c.getNumDocumento().equals(numDocumento)) {
+	        	duplicado = true;
+	        }
+	        j++;
+	    }
+
+	    if (duplicado) {
+	        throw new malDigitadoNulo("Ya se ha registrado una persona con este tipo y número de documento");
+	    }
+	    
 	    if (clientes != null) {
 	        clientes = Arrays.copyOf(clientes, clientes.length + 1);
 	    } else {
@@ -374,7 +438,7 @@ public class Aerolinea {
 	}
 
 	public void eliminarEmpleado(String numDocumento, String tipoDocumento) 
-	        throws personaNoEncontrada, arregloVacio, malDigitadoNulo {
+	        throws personaNoEncontrada, arregloVacio, malDigitadoNulo, vueloVigente {
 	    
 	    if (empleados == null || empleados.length == 0) {
 	        throw new arregloVacio("empleados");
@@ -390,11 +454,16 @@ public class Aerolinea {
 	        throw new personaNoEncontrada(numDocumento + " - " + tipoDocumento);
 	    }
 	    
+	    if (!empleados[indexAEliminar].isDisponibilidad()) {
+	    	throw new vueloVigente("No puede eliminarse un empleado de un vuelo vigente");
+	    }
+	    
 	    Empleado[] newEmpleados = new Empleado[empleados.length - 1];
 	    System.arraycopy(empleados, 0, newEmpleados, 0, indexAEliminar);
 	    System.arraycopy(empleados, indexAEliminar + 1, newEmpleados, indexAEliminar, 
 	                     empleados.length - indexAEliminar - 1);
 	    empleados = newEmpleados;
+	    f.deleteEmpleado(tipoDocumento, numDocumento);
 	}
 	
 	public void eliminarCliente(String numDocumento, String tipoDocumento) 
@@ -419,6 +488,7 @@ public class Aerolinea {
 	    System.arraycopy(clientes, indexAEliminar + 1, newClientes, indexAEliminar, 
 	                     clientes.length - indexAEliminar - 1);
 	    clientes = newClientes;
+	    f.deleteCliente(tipoDocumento, numDocumento);
 	}
 
 	// Vuelos 
@@ -444,6 +514,10 @@ public class Aerolinea {
 	    
 	    if (!horaSalida.before(horaLlegada)) {
 	        throw new malDigitadoNulo("La hora de llegada no puede ser igual o anterior a la de salida.");
+	    }
+	    
+	    if (codAeropuertoSalida.equalsIgnoreCase(codAeropuertoLlegada)) {
+	    	throw new malDigitadoNulo("El vuelo no puede salir y llegar al mismo aeropuerto.");
 	    }
 	    
 	    Avion avion = buscarAvion(codigoAvion);
@@ -477,7 +551,7 @@ public class Aerolinea {
 	    }
 	    
 	    if (!vuelos[indexAEliminar].isFinalizadoOCancelado()) {
-	    	throw new vueloVigente();
+	    	throw new vueloVigente("No es posible eliminar un vuelo que no haya finalizado o no se haya cancelado");
 	    }
 	
 	    Vuelo[] newVuelos = new Vuelo[vuelos.length - 1];
@@ -517,6 +591,7 @@ public class Aerolinea {
 	    }
 		
 		vuelos[index].marcarfinalizadoOCancelado();
+		f.updateVuelo(codigo, buscarVuelo(codigo));
 	}
 
 	public int devolverIndexVuelo(String codigo) {

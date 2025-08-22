@@ -6,6 +6,7 @@ import java.io.*; // Incluye File, FileInputStream, FileOutputStream, Object str
 import java.nio.charset.StandardCharsets; // Proporciona la constante UTF_8 para lectores/escritores de texto.
 import java.util.Arrays;
 
+import AEROLINEA.Aerolinea;
 // Importamos clases del dominio (entidades del sistema).
 import AEROLINEA.Aeropuerto; // Clase Aeropuerto.
 import AEROLINEA.Avion;      // Clase Avion.
@@ -31,7 +32,7 @@ public class ManejoFicheros { // Declaración de la clase pública.
     private File dirEmpleado;     // Subcarpeta "Ficheros/Empleado".
     private File dirVuelo;        // Subcarpeta "Ficheros/Vuelo".
     private File dirReservacion;  // Subcarpeta "Ficheros/Reservacion".
-
+    private Aerolinea a;
     // ===== Archivos auxiliares =====
     private File flagInicializado;     // Archivo "Ficheros/.initialized" para marcar que ya se cargó el TXT.
     private File ficheroInicial;       // Archivo "Ficheros/datos_iniciales.txt" con datos iniciales.
@@ -54,9 +55,20 @@ public class ManejoFicheros { // Declaración de la clase pública.
         dirReservacion = new File(raiz, "Reservacion");      // Define subcarpeta Reservacion.
         flagInicializado = new File(raiz, ".initialized");   // Apunta al archivo de bandera/flag.
         ficheroInicial = new File(raiz, "datos_iniciales.txt"); // Apunta al TXT de datos iniciales.
+        a = new Aerolinea(null, null, null, null, null, null, this);
 
         crearDirectorios();   // Asegura que todas las carpetas existan.
         cargarInicialSiAplica(); // Intenta carga inicial desde TXT si procede.
+        a.setClientes(leerObjetos(dirCliente, Cliente.class));
+        a.setEmpleados(leerObjetos(dirEmpleado, Empleado.class));
+        a.setAviones(leerObjetos(dirAvion, Avion.class));
+        a.setVuelos(leerObjetos(dirVuelo, Vuelo.class));
+        a.setAeropuertos(leerObjetos(dirAeropuerto, Aeropuerto.class));
+        a.setReservaciones(leerObjetos(dirReservacion, Reservacion.class));
+    }
+    
+    public Aerolinea getAerolinea() {
+        return a;
     }
 
     // ==========================================================
@@ -111,6 +123,7 @@ public class ManejoFicheros { // Declaración de la clase pública.
         if (a == null) return; // Valida objeto.
         String id = a.getCodigoA(); // Obtiene ID (ajusta si tu clase usa otro getter).
         escribirObjeto(new File(dirAvion, id + ".obj"), a); // Serializa a "Ficheros/Avion/<id>.obj".
+        
     }
 
     public Avion getAvionById(String id) { // Recupera un avión por ID.
@@ -151,15 +164,20 @@ public class ManejoFicheros { // Declaración de la clase pública.
     // =======================   CLIENTE   =======================
     // ==========================================================
 
+    private String buildPersonaId(String tipoDoc, String numDoc) {
+        return tipoDoc + "_" + numDoc;
+    }
+    
     public void addCliente(Cliente c) { // Agrega/guarda un cliente.
         if (c == null) return; // Valida.
-        String id = c.getNumDocumento(); // Usa número de documento como ID.
+        String id = buildPersonaId(c.getTipoDocumento(), c.getNumDocumento()); // Usa número de documento como ID.
         escribirObjeto(new File(dirCliente, id + ".obj"), c); // Serializa a "Ficheros/Cliente/<id>.obj".
     }
 
-    public Cliente getClienteById(String id) { // Recupera cliente por ID.
-        if (id == null || id.length() == 0) return null; // Valida.
-        return (Cliente) leerObjeto(new File(dirCliente, id + ".obj")); // Deserializa y castea.
+    public Cliente getClienteById(String tipoDoc, String numDoc) { // Recupera cliente por ID.
+    	if (tipoDoc == null || numDoc == null || tipoDoc.isEmpty() || numDoc.isEmpty()) return null; // Valida.
+    	String id = buildPersonaId(tipoDoc, numDoc);
+    	return (Cliente) leerObjeto(new File(dirCliente, id + ".obj")); // Deserializa y castea.
     }
 
     public Cliente[] getAllCliente() { // Devuelve todos los clientes.
@@ -180,14 +198,24 @@ public class ManejoFicheros { // Declaración de la clase pública.
         return exacto; // Retorna exacto.
     }
 
-    public void updateCliente(String id, Cliente nuevo) { // Actualiza cliente por ID.
-        if (id == null || id.length() == 0 || nuevo == null) return; // Valida.
-        escribirObjeto(new File(dirCliente, id + ".obj"), nuevo); // Sobrescribe.
+    public void updateCliente(String tipoDoc, String numDoc, Cliente nuevo) { // Actualiza cliente por ID.
+        if (tipoDoc == null || numDoc == null || tipoDoc.isEmpty() || numDoc.isEmpty() || nuevo == null) return; // Valida.
+        String oldId = buildPersonaId(tipoDoc, numDoc); // ID anterior (archivo actual).
+        String newId = buildPersonaId(nuevo.getTipoDocumento(), nuevo.getNumDocumento()); // ID desde el objeto (puede haber cambiado).
+
+        escribirObjeto(new File(dirCliente, newId + ".obj"), nuevo); // Sobrescribe (o crea) usando el ID actual del objeto.
+
+        if (!oldId.equals(newId)) { // Si cambió el documento/tipo, borra el archivo viejo para evitar duplicados.
+            File oldFile = new File(dirCliente, oldId + ".obj"); // Ubica archivo viejo.
+            if (oldFile.exists()) oldFile.delete(); // Borra si existe.
+        }
     }
 
-    public void deleteCliente(String id) { // Elimina cliente por ID.
-        if (id == null || id.length() == 0) return; // Valida.
-        File f = new File(dirCliente, id + ".obj"); // Ubica archivo.
+
+    public void deleteCliente(String tipoDoc, String numDoc) { // Elimina cliente por ID.
+    	if (tipoDoc == null || numDoc == null || tipoDoc.isEmpty() || numDoc.isEmpty()) return; // Valida.
+    	String id = buildPersonaId(tipoDoc, numDoc);
+    	File f = new File(dirCliente, id + ".obj"); // Ubica archivo.
         if (f.exists()) f.delete(); // Borra si existe.
     }
 
@@ -197,12 +225,13 @@ public class ManejoFicheros { // Declaración de la clase pública.
 
     public void addEmpleado(Empleado e) { // Agrega/guarda empleado.
         if (e == null) return; // Valida.
-        String id = e.getNumDocumento(); // ID desde documento.
+        String id = buildPersonaId(e.getTipoDocumento(), e.getNumDocumento()); // ID desde tipo+documento.
         escribirObjeto(new File(dirEmpleado, id + ".obj"), e); // Serializa a "Ficheros/Empleado/<id>.obj".
     }
 
-    public Empleado getEmpleadoById(String id) { // Recupera empleado por ID.
-        if (id == null || id.length() == 0) return null; // Valida.
+    public Empleado getEmpleadoById(String tipoDoc, String numDoc) { // Recupera empleado por ID.
+        if (tipoDoc == null || numDoc == null || tipoDoc.length() == 0 || numDoc.length() == 0) return null; // Valida.
+        String id = buildPersonaId(tipoDoc, numDoc); // Construye ID.
         return (Empleado) leerObjeto(new File(dirEmpleado, id + ".obj")); // Deserializa y castea.
     }
 
@@ -224,16 +253,27 @@ public class ManejoFicheros { // Declaración de la clase pública.
         return exacto; // Retorna exacto.
     }
 
-    public void updateEmpleado(String id, Empleado nuevo) { // Actualiza empleado.
-        if (id == null || id.length() == 0 || nuevo == null) return; // Valida.
-        escribirObjeto(new File(dirEmpleado, id + ".obj"), nuevo); // Sobrescribe.
+    public void updateEmpleado(String tipoDoc, String numDoc, Empleado nuevo) { // Actualiza empleado.
+        if (tipoDoc == null || numDoc == null || tipoDoc.length() == 0 || numDoc.length() == 0 || nuevo == null) return; // Valida.
+        String oldId = buildPersonaId(tipoDoc, numDoc); // ID anterior (archivo actual).
+        String newId = buildPersonaId(nuevo.getTipoDocumento(), nuevo.getNumDocumento()); // ID desde el objeto (puede haber cambiado).
+
+        escribirObjeto(new File(dirEmpleado, newId + ".obj"), nuevo); // Sobrescribe (o crea) con el ID actual del objeto.
+
+        if (!oldId.equals(newId)) { // Si cambió documento/tipo, elimina el archivo anterior para evitar duplicados.
+            File oldFile = new File(dirEmpleado, oldId + ".obj"); // Ubica archivo viejo.
+            if (oldFile.exists()) oldFile.delete(); // Borra si existe.
+        }
     }
 
-    public void deleteEmpleado(String id) { // Elimina empleado.
-        if (id == null || id.length() == 0) return; // Valida.
+    public void deleteEmpleado(String tipoDoc, String numDoc) { // Elimina empleado.
+        if (tipoDoc == null || numDoc == null || tipoDoc.length() == 0 || numDoc.length() == 0) return; // Valida.
+        String id = buildPersonaId(tipoDoc, numDoc); // Construye ID.
         File f = new File(dirEmpleado, id + ".obj"); // Ubica archivo.
         if (f.exists()) f.delete(); // Borra si existe.
     }
+
+
 
     // ==========================================================
     // =========================   VUELO   =======================
@@ -269,10 +309,11 @@ public class ManejoFicheros { // Declaración de la clase pública.
     }
 
     public void updateVuelo(String id, Vuelo nuevo) { // Actualiza vuelo.
-        if (id == null || id.length() == 0 || nuevo == null) return; // Valida.
-        escribirObjeto(new File(dirVuelo, id + ".obj"), nuevo); // Sobrescribe.
+        if (id == null || id.isEmpty() || nuevo == null) return; // Valida.
+        File f = new File(dirVuelo, id + ".obj"); // Ubica archivo.
+        if (!f.exists()) return; // Salvaguarda: no sobrescribe si no existe.
+        escribirObjeto(f, nuevo); // Sobrescribe.
     }
-
     public void deleteVuelo(String id) { // Elimina vuelo.
         if (id == null || id.length() == 0) return; // Valida.
         File f = new File(dirVuelo, id + ".obj"); // Ubica archivo.
@@ -504,6 +545,45 @@ public class ManejoFicheros { // Declaración de la clase pública.
             if (ois != null) { try { ois.close(); } catch (IOException ignored) {} } // Cerramos con manejo de excepción.
         }
     }
+    
+    @SuppressWarnings("unchecked")
+    public <T> T[] leerObjetos(File directorio, Class<T> tipo) {
+        if (directorio == null || !directorio.exists() || !directorio.isDirectory()) {
+            System.err.println("Directorio no válido: " + directorio);
+            return (T[]) java.lang.reflect.Array.newInstance(tipo, 0);
+        }
+
+        File[] archivos = directorio.listFiles((dir, name) -> name.endsWith(".obj"));
+        if (archivos == null || archivos.length == 0) {
+            return (T[]) java.lang.reflect.Array.newInstance(tipo, 0);
+        }
+
+        T[] temp = (T[]) java.lang.reflect.Array.newInstance(tipo, archivos.length);
+        int k = 0;
+
+        for (File f : archivos) {
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(f))) {
+                Object obj = ois.readObject();
+                if (tipo.isInstance(obj)) {
+                    temp[k++] = (T) obj;
+                } else {
+                    System.err.println("Archivo " + f.getName() + " no es del tipo esperado: " + tipo.getSimpleName());
+                }
+            } catch (Exception e) {
+                System.err.println("Error leyendo " + f.getName() + ": " + e.getMessage());
+            }
+        }
+
+        // recortar el arreglo si hubo errores o archivos inválidos
+        if (k < temp.length) {
+            T[] exacto = (T[]) java.lang.reflect.Array.newInstance(tipo, k);
+            System.arraycopy(temp, 0, exacto, 0, k);
+            return exacto;
+        }
+
+        return temp;
+    }
+
 
     private void escribirComoTexto(File destinoBinario, Object obj) { // Guardado alternativo en .txt (snapshot).
         File txt = new File( // Creamos el File del .txt en la misma carpeta.

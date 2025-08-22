@@ -1,0 +1,19 @@
+[AEROPUERTO]
+nombre|codigo|pais|ciudad|esInternacional
+El Dorado|BOG|Colombia|Bogotá|true
+José María Córdova|MDE|Colombia|Medellín|true
+
+[AVION]
+modelo|capacidad
+Airbus A320|180
+Boeing 737|160
+
+[CLIENTE]
+nombre|tipoDoc|numDoc|nacionalidad|sexo|esVIP|millas
+Ana Pérez|CC|10293845|Colombiano|F|true|12000
+Ricardo Vallejo|CC|71726701|Colombiano|M|true|3000
+
+[EMPLEADO]
+nombre|tipoDoc|numDoc|nacionalidad|sexo|cargo
+Juan Díaz|CC|998877|Colombiano|M|Piloto
+Reinaldo Gil|Pasaporte|123345|Venezolano|M|Copiloto

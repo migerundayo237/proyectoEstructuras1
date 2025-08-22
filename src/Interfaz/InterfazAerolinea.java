@@ -28,8 +28,11 @@ import Ficheros.ManejoFicheros;
 
 public class InterfazAerolinea {
     private JTextArea outputArea;
-    ManejoFicheros f = new ManejoFicheros();
-	Aerolinea a = new Aerolinea(null, null, null, null, null, null, f);
+    private ManejoFicheros f = new ManejoFicheros();
+    private Aerolinea a = f.getAerolinea();
+    private String[] tipoDoc = { "CC", "CE", "TI", "Pasaporte" };
+    private String[] sexos = {"Masculino", "Femenino", "Otro"};
+    private String[] cargos = {"Piloto", "Copiloto"};
 	
 	public static void main(String[] args) {
 		SwingUtilities.invokeLater(() -> new InterfazAerolinea().crearInterfaz());
@@ -145,7 +148,7 @@ public class InterfazAerolinea {
 	        	outputArea.append("Avión eliminado: " + codigo + "\n");
 	        	deleteCodigo.setText("");
 	        }
-	        catch(arregloVacio | avionNoEncontrado ex) {
+	        catch(arregloVacio | avionNoEncontrado | vueloVigente ex) {
 	        	outputArea.append("Error: " + ex.getMessage() + "\n");
 	        }
 	    });
@@ -335,16 +338,12 @@ public class InterfazAerolinea {
 		// --- Center: forms (hidden until needed) ---
 		JPanel formsPanel = new JPanel(new CardLayout());
 
-		// --- Common values ---
-		String[] tipoDoc = { "CC", "CE", "TI", "Pasaporte" };
-
 		// Añadir cliente
 		JPanel addForm = new JPanel(new GridLayout(10, 2, 5, 5));
 		JTextField nombreField = new JTextField();
 		JComboBox<String> tipoDocBoxAdd = new JComboBox<>(tipoDoc);
 		JTextField numDocField = new JTextField();
 		JTextField nacionalidadField = new JTextField();
-		String[] sexos = {"Masculino", "Femenino", "Otro"};
 		JComboBox<String> sexoBox = new JComboBox<>(sexos);
 		JCheckBox vipCheck = new JCheckBox("Cliente VIP");
 		JTextField millasField = new JTextField();
@@ -492,7 +491,6 @@ public class InterfazAerolinea {
 	    JPanel formsPanel = new JPanel(new CardLayout());
 	    
 	    // --- Common values ---
-	 	String[] tipoDoc = { "CC", "CE", "TI", "Pasaporte" };
 
 	    // Añadir empleado
 	    JPanel addForm = new JPanel(new GridLayout(8, 2, 5, 5));
@@ -500,9 +498,8 @@ public class InterfazAerolinea {
 	    JComboBox<String> tipoDocBoxAdd = new JComboBox<>(tipoDoc);
 	    JTextField numDocField = new JTextField();
 	    JTextField nacionalidadField = new JTextField();
-	    String[] sexos = {"Masculino", "Femenino", "Otro"};
 	    JComboBox<String> sexoBox = new JComboBox<>(sexos);
-	    JTextField cargoField = new JTextField();
+	    JComboBox<String> cargoBox = new JComboBox<>(cargos);
 	    JButton confirmarAdd = new JButton("Confirmar");
 
 	    addForm.add(new JLabel("Nombre:")); addForm.add(nombreField);
@@ -510,7 +507,7 @@ public class InterfazAerolinea {
 	    addForm.add(new JLabel("Número de Documento:")); addForm.add(numDocField);
 	    addForm.add(new JLabel("Nacionalidad:")); addForm.add(nacionalidadField);
 	    addForm.add(new JLabel("Sexo:")); addForm.add(sexoBox);
-	    addForm.add(new JLabel("Cargo:")); addForm.add(cargoField);
+	    addForm.add(new JLabel("Cargo:")); addForm.add(cargoBox);
 	    addForm.add(new JLabel("")); addForm.add(confirmarAdd);
 
 	    formsPanel.add(addForm, "ADD");
@@ -567,7 +564,7 @@ public class InterfazAerolinea {
 	                numDocField.getText(),
 	                nacionalidadField.getText(),
 	                sexo,
-	                cargoField.getText()
+	                (String) cargoBox.getSelectedItem()
 	            );
 	            outputArea.append("Empleado agregado: " + nombreField.getText() + "\n");
 
@@ -575,7 +572,6 @@ public class InterfazAerolinea {
 	            nombreField.setText("");
                 numDocField.setText("");
                 nacionalidadField.setText("");
-                cargoField.setText("");
 
 	        } catch (malDigitadoNulo ex) {
 	            outputArea.append("Error: " + ex.getMessage() + "\n");
@@ -589,7 +585,7 @@ public class InterfazAerolinea {
 	        	outputArea.append("Empleado eliminado: " + tipoDoc + " " + numDoc + "\n");
 	        	deleteNumDoc.setText("");
 	        }
-	        catch(arregloVacio | personaNoEncontrada | malDigitadoNulo ex) {
+	        catch(arregloVacio | personaNoEncontrada | malDigitadoNulo | vueloVigente ex) {
 	        	outputArea.append("Error: " + ex.getMessage() + "\n");
 	        }
 	    });
@@ -802,7 +798,7 @@ public class InterfazAerolinea {
 	    JButton addButton = new JButton("Agregar Reservación");
 	    JButton deleteButton = new JButton("Eliminar Reservación");
 	    JButton searchButton = new JButton("Buscar Reservación");
-	    JButton showButton = new JButton("Mostrar Reservación");
+	    JButton showButton = new JButton("Mostrar Reservaciones");
 	    actionsPanel.add(addButton);
 	    actionsPanel.add(deleteButton);
 	    actionsPanel.add(searchButton);
@@ -867,9 +863,22 @@ public class InterfazAerolinea {
 	            Cliente[] clientes = new Cliente[numClientes];
 
 	            for (int i = 0; i < numClientes; i++) {
-	                String tipoDoc = JOptionPane.showInputDialog("Cliente " + (i+1) + " - Tipo de documento:");
-	                String numDoc = JOptionPane.showInputDialog("Cliente " + (i+1) + " - Número de documento:");
-	                clientes[i] = a.buscarCliente(tipoDoc, numDoc);
+	                // Use combo box style dialog for tipoDoc
+	                String tipoDocSeleccionado = (String) JOptionPane.showInputDialog(
+	                        null,
+	                        "Cliente " + (i + 1) + " - Tipo de documento:",
+	                        "Seleccionar tipo de documento",
+	                        JOptionPane.QUESTION_MESSAGE,
+	                        null,
+	                        tipoDoc,   // array of options
+	                        tipoDoc[0] // default option
+	                );
+
+	                String numDoc = JOptionPane.showInputDialog(
+	                        "Cliente " + (i + 1) + " - Número de documento:"
+	                );
+
+	                clientes[i] = a.buscarCliente(tipoDocSeleccionado, numDoc);
 	            }
 
 	            a.addReservacion(
@@ -879,6 +888,10 @@ public class InterfazAerolinea {
 	            );
 	            outputArea.append("Reservación agregada: " 
 	            			+ a.getReservaciones()[a.getReservaciones().length - 1].getCodigo() + "\n");
+	            
+	            clientesField.setText("");
+	            vueloField.setText("");
+	            precioField.setText("");
 
 	        } catch (malDigitadoNulo | NumberFormatException | vueloNoEncontrado | vueloLleno | arregloVacio | personaNoEncontrada ex) {
 	            outputArea.append("Error: " + ex.getMessage() + "\n");

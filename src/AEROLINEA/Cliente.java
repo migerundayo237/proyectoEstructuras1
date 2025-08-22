@@ -37,6 +37,13 @@ public class Cliente extends Persona implements Serializable {
 	public void setReservaciones(Reservacion[] reservaciones) {
 		Reservaciones = reservaciones;
 	}
+	
+	public void addReservacionACliente(Reservacion reservacion) {
+		if (Reservaciones != null) Reservaciones = Arrays.copyOf(Reservaciones, Reservaciones.length + 1);
+	    else Reservaciones = new Reservacion[1];
+	    Reservaciones[Reservaciones.length - 1] = reservacion;
+	}
+	
 	@Override
 	public String toString() {
 		StringBuilder reservasString = new StringBuilder("");
@@ -53,6 +60,7 @@ public class Cliente extends Persona implements Serializable {
 				+ super.getTipoDocumento() + " " + super.getNumDocumento()
 				+ "\nNacionalidad: " + super.getNacionalidad()
 				+ "\nTipo: cliente " + tipo
+				+ "\nMillas acumuladas: " + MillasAcumuladas
 				+ "\nReservaciones: " + reservasString;
 	}
 	

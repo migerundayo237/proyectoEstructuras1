@@ -19,6 +19,7 @@ public class Reservacion implements Serializable {
 		this.clientes = clientes;
 		this.vuelo = vuelo;
 		this.precio = precio;
+		aumentarMillas();
 	}
 
 	public String getCodigo() {
@@ -57,10 +58,10 @@ public class Reservacion implements Serializable {
 	public String toString() {
 		StringBuilder clientesString = new StringBuilder("");
 		for(Cliente c : clientes) {
-			clientesString.append(c.getNombreP());
 			clientesString.append("\n");
+			clientesString.append(c.getNombreP());
 		}
-		return "Reservacion " + codigo 
+		return "Reservación " + codigo 
 				+ "\nClientes: " + clientesString 
 				+ "\nVuelo: " + vuelo.getCodigo()
 				+ "\nPrecio: $" + precio + "\n";
